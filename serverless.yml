@@ -1,0 +1,199 @@
+service: moonforge-api
+frameworkVersion: "3"
+
+plugins:
+  - serverless-dynamodb-local
+  - serverless-offline
+
+custom:
+  dynamodb:
+    stages:
+      - local
+      - dev
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+      # Comment if you don't have a DynamoDB running locally
+      noStart: true
+    migration:
+      dir: offline/migrations
+  stages:
+    - dev
+    - staging
+    - prod
+  alchemyApiKey:
+    local: "b8REnI1qJYKUmzshp4T4rW1EiV_BnWNb"
+    dev: "b8REnI1qJYKUmzshp4T4rW1EiV_BnWNb"
+    staging: "b8REnI1qJYKUmzshp4T4rW1EiV_BnWNb"
+    prod: ""
+  alchemyChainRPC:
+    local: "https://eth-goerli.g.alchemy.com/v2/"
+    dev: "https://eth-goerli.g.alchemy.com/v2/"
+    staging: "https://eth-goerli.g.alchemy.com/v2/"
+    prod: ""
+  ethNetwork:
+    local: "goerli"
+    dev: "goerli"
+    staging: "goerli"
+    prod: "mainnet"
+  starkKey:
+    local: "0633197dd0dbc81069bf201ef20fe6a078736a99098daf7839517c00968029c1"
+    dev: "0633197dd0dbc81069bf201ef20fe6a078736a99098daf7839517c00968029c1"
+    staging: "0633197dd0dbc81069bf201ef20fe6a078736a99098daf7839517c00968029c1"
+    prod: "0633197dd0dbc81069bf201ef20fe6a078736a99098daf7839517c00968029c1"
+  privateKey:
+    local: "e463ca2bdc9b315d8e766335434401840010997cc1beeebc4817d5a776cfa28a"
+    dev: "e463ca2bdc9b315d8e766335434401840010997cc1beeebc4817d5a776cfa28a"
+    staging: "e463ca2bdc9b315d8e766335434401840010997cc1beeebc4817d5a776cfa28a"
+    prod: "e463ca2bdc9b315d8e766335434401840010997cc1beeebc4817d5a776cfa28a"
+  collectionFactoryAddress:
+    local: "0x6E1FE32e72B41729DA1B47Dc01EFdAB7e26D4dF1"
+    dev: "0x6E1FE32e72B41729DA1B47Dc01EFdAB7e26D4dF1"
+    staging: "0x6E1FE32e72B41729DA1B47Dc01EFdAB7e26D4dF1"
+    prod: "0x6E1FE32e72B41729DA1B47Dc01EFdAB7e26D4dF1"
+  apiUrl:
+    local: "http://localhost:3000"
+    dev: !GetAtt HttpApi.ApiEndpoint
+    staging: !GetAtt HttpApi.ApiEndpoint
+    prod: "https://api.moonforge.io"
+  metadataBucket:
+    local: "moonforge-api-local"
+    dev: "moonforge-api-dev"
+    staging: "moonforge-api-staging"
+    prod: "moonforge-api-prod"
+
+provider:
+  name: aws
+  stage: ${opt:stage,'dev'}
+  region: eu-west-1
+  deploymentMethod: direct
+  runtime: nodejs14.x
+  memorySize: 512 # optional, in MB, default is 1024
+  timeout: 10 # optional, in seconds, default is 6
+  environment:
+    DYNAMODB_TABLE: ${self:service}-${sls:stage}
+    ALCHEMY_API_KEY: ${self:custom.alchemyApiKey.${self:provider.stage}}
+    ALCHEMY_CHAIN_RPC: ${self:custom.alchemyChainRPC.${self:provider.stage}}
+    ETH_NETWORK: ${self:custom.ethNetwork.${self:provider.stage}}
+    # PUBLIC_API_URL: ${self:custom.publicApiUrl.${self:provider.stage}}
+    # STARK_CONTRACT_ADDRESS: ${self:custom.starkContractAddress.${self:provider.stage}}
+    # REGISTRATION_ADDRESS: ${self:custom.registrationAddress.${self:provider.stage}}
+    COLLECTION_FACTORY_ADDRESS: ${self:custom.collectionFactoryAddress.${self:provider.stage}}
+    GAS_LIMIT: 7000000
+    GAS_PRICE: 40000000000
+    PRIVATE_KEY: ${self:custom.privateKey.${self:provider.stage}}
+    STARK_KEY: ${self:custom.starkKey.${self:provider.stage}}
+    API_URL: ${self:custom.apiUrl.${self:provider.stage}}
+    # API_URL: !GetAtt HttpApi.ApiEndpoint
+    METADATA_BUCKET: ${self:custom.metadataBucket.${self:provider.stage}}
+
+  httpApi:
+    cors: true
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:*
+            - s3:*
+          Resource: "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+
+functions:
+  createCollection:
+    handler: collections/create-collection.createCollection
+    memorySize: 1536 # optional, in MB, default is 1024
+    timeout: 60 # optional, in seconds, default is 6  
+    events:
+      - httpApi:
+          path: /collections
+          method: post
+
+  listCollections:
+    handler: collections/list-collections.listCollections
+    events:
+      - httpApi:
+          path: /collections
+          method: get
+
+  getCollection:
+    handler: collections/get-collection.getCollection
+    events:
+      - httpApi:
+          path: /collections/{id}
+          method: get
+
+  getNFTMetadata:
+    handler: nft/get-metadata.getNFTMetadata
+    events:
+      - httpApi:
+          path: /{marketplace}/{address}/{tokenId}
+          method: get
+
+  claimToken:
+    handler: nft/claim-token.claimToken
+    events:
+      - httpApi:
+          path: /claimPrize
+          method: post
+
+  # openPack:
+  #   handler: collections/open-pack.openPack
+  #   events:
+  #     - httpApi:
+  #         path: /collections/openPack
+  #         method: post
+
+  # forge:
+  #   handler: collections/forge.forge
+  #   events:
+  #     - httpApi:
+  #         path: /collections/forge
+  #         method: post
+
+  getProjects:
+    handler: imx-projects/get-projects.getProjectsEndpoint
+    events:
+      - httpApi:
+          path: /projects
+          method: get
+
+  getProject:
+    handler: imx-projects/get-project.getProjectEndpoint
+    events:
+      - httpApi:
+          path: /project/{id}
+          method: get
+
+resources:
+  Resources:
+    CollectionsDynamoDbTable:
+      Type: "AWS::DynamoDB::Table"
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: pk
+            AttributeType: S
+          - AttributeName: sk
+            AttributeType: S
+        KeySchema:
+          - AttributeName: pk
+            KeyType: HASH
+          - AttributeName: sk
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+    CollectionsMetadataBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.METADATA_BUCKET}
+        AccessControl: PublicRead
+        # CorsConfiguration:
+        #   CorsRules:
+        #     - AllowedHeaders:
+        #         - "*"
+        #       AllowedMethods:
+        #         - GET
+        #       AllowedOrigins:
+        #         - "*"
+        #       MaxAge: 3000

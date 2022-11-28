@@ -1,0 +1,22 @@
+{
+  "name": "moonforge-serverless-api",
+  "version": "1.0.0",
+  "description": "Serverless HTTP API with DynamoDB and ImmutableX blockchain",
+  "repository": "",
+  "author": "Djordje Marjanovic <djordje@hey.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@imtbl/core-sdk": "^1.0.0-beta.3",
+    "aws-sdk": "^2.12.0",
+    "dynamodb-toolbox": "^0.4.3",
+    "ethers": "^5.7.2",
+    "lodash": "^4.17.21",
+    "short-uuid": "^4.2.2",
+    "uuid": "^2.0.3",
+    "web3": "^1.8.0"
+  },
+  "devDependencies": {
+    "serverless-dynamodb-local": "^0.2.18",
+    "serverless-offline": "^6.8.0"
+  }
+}

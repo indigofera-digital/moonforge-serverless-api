@@ -1,0 +1,3 @@
+{
+    "body": "{\"royaltyFee\": 3.5,\"feeCollectorAddress\": \"0xe7bDFCD70a0Bf4a46f9e5160329973a79373C145\",\"name\": \"Moonforge puzzles\",\"description\": \"Moonforge puzzle game\",\"symbol\": \"GGG\",\"clientName\": \"TestCompany\", \"gameType\": \"sweepstake\"}"
+}
